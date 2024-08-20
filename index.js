@@ -52,25 +52,25 @@ void main()
     float diff = gaussian_2 - gaussian_1; */
     
     float n[9];
-	make_kernel( n, texture, uv);
+	  make_kernel( n, texture, uv);
 
-	float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
-    if (sobel_edge_h < 0.2) sobel_edge_h = 0.0;
+	  float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
   	float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
     
     float blue = 0.0;
     bool d_flag = true;
     
-    if (sobel_edge_v < SOBEL_THRESHOLD) {
+    if (abs(sobel_edge_v) < SOBEL_THRESHOLD) {
         sobel_edge_v = 0.0;
         d_flag = false;
-    } else if (sobel_edge_h < SOBEL_THRESHOLD) {
+    }
+    if (abs(sobel_edge_h) < SOBEL_THRESHOLD) {
         sobel_edge_h = 0.0;
         d_flag = false;
     }
         
     if (d_flag) {    
-        if (abs(sobel_edge_h - sobel_edge_v) > 0.25) {
+        if (abs(abs(sobel_edge_h) - abs(sobel_edge_v)) > 0.25) {
             if (abs(sobel_edge_h) > abs(sobel_edge_v)) {
                 sobel_edge_v = 0.0;
                 sobel_edge_h = 1.0;
@@ -89,7 +89,7 @@ void main()
     }
     
     
-	gl_FragColor = vec4( abs(sobel_edge_h), abs(sobel_edge_v), blue, 1.0);
+	gl_FragColor = vec4(abs(sobel_edge_h), abs(sobel_edge_v), blue, 1.0);
     return;    
 }`;
 

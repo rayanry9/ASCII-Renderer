@@ -191,10 +191,14 @@ void main() {
 
   //gl_FragColor = vec4(count.xyz, 1.0);
 
-  if (count.x>11.0) gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); 
-  else if (count.y>11.0) gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
-  else if (count.z>11.0) gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
-  else if (count.w>11.0) gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
+  float highest = max(count.x, max(count.y, max(count.z, count.w)));
+
+  if (highest>11.0) {
+    if (count.x == highest) gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); 
+    else if (count.y == highest) gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else if (count.z == highest) gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+    else if (count.w == highest) gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
+  } 
 
   //gl_FragColor = vec4(uv.x, uv.y , 0.0, 1.0);
 }`;

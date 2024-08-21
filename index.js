@@ -9,7 +9,7 @@ void main() {
   gl_Position = uProjectionMatrix * uModelViewMatrix * vpos;
 }`;
 
-const fsSource = `
+const fs_sebol_source = `
 
 precision mediump float;
 uniform vec2 resolution;
@@ -61,36 +61,142 @@ void main()
     bool d_flag = true;
     
     if (abs(sobel_edge_v) < SOBEL_THRESHOLD) {
-        sobel_edge_v = 0.0;
+        gl_FragColor = vec4(0.0);
         d_flag = false;
     }
     if (abs(sobel_edge_h) < SOBEL_THRESHOLD) {
-        sobel_edge_h = 0.0;
+        gl_FragColor = vec4(0.0);
         d_flag = false;
     }
         
     if (d_flag) {    
         if (abs(abs(sobel_edge_h) - abs(sobel_edge_v)) > 0.25) {
             if (abs(sobel_edge_h) > abs(sobel_edge_v)) {
-                sobel_edge_v = 0.0;
-                sobel_edge_h = 1.0;
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // Horizontal
             } else { 
-                sobel_edge_h = 0.0;
-                sobel_edge_v = 1.0;
+                gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); // Vertical
             }
         } else if (sobel_edge_h*sobel_edge_v > 0.0) {
-            sobel_edge_h = 1.0;
-            sobel_edge_v = 1.0;
+            gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); // '/'
         } else {
-            sobel_edge_h = -1.0;
-            sobel_edge_v = -1.0;
-            blue = 1.0;
+            gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0); // '\\'
         }
     }
     
     
-	gl_FragColor = vec4(abs(sobel_edge_h), abs(sobel_edge_v), blue, 1.0);
-    return;    
+	//gl_FragColor = vec4(abs(sobel_edge_h), abs(sobel_edge_v), blue, 1.0);
+  //gl_FragColor = vec4(0.0, 1.0, 0.0, 0.0);
+  return;
+}`;
+
+const fs_downscale_source = `
+precision mediump float;
+uniform vec2 resolution;
+uniform sampler2D texture;
+
+vec4 convert(in vec4 color) {
+  vec4 result = color;
+  result.w = 0.0;
+  if (color.x + color.y > 1.0) {
+    result = vec4(0.0, 0.0, 0.0, 1.0);
+  }
+
+  return result;
+}
+
+vec4 calc_mode() {
+  vec4 count = vec4(0.0, 0.0, 0.0, 0.0);
+
+  vec2 coords = (gl_FragCoord.xy)*8.0; // not UV
+
+  count = count + convert( 
+    texture2D(texture, 
+              (coords + vec2(0.0, 0.0))/(resolution.xy*8.0)
+  ));
+
+  count = count + convert(texture2D(texture, (coords + vec2(0.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(0.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(0.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(0.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(0.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(0.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(0.0, 7.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 0.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(1.0, 7.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 0.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(2.0, 7.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 0.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(3.0, 7.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 0.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(4.0, 7.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 0.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(5.0, 7.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 0.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(6.0, 7.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 0.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 1.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 2.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 3.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 4.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 5.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 6.0))/(resolution.xy*8.0) ));
+  count = count + convert(texture2D(texture, (coords + vec2(7.0, 7.0))/(resolution.xy*8.0) ));
+  return count;
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy/resolution;
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+  vec4 count = vec4(0);
+  // vec2 coords = 8.0*gl_FragCoord.xy;
+
+  count = calc_mode();
+
+  //gl_FragColor = vec4(count.xyz, 1.0);
+
+  if (count.x>11.0) gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); 
+  else if (count.y>11.0) gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+  else if (count.z>11.0) gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+  else if (count.w>11.0) gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
+
+  //gl_FragColor = vec4(uv.x, uv.y , 0.0, 1.0);
 }`;
 
 const fs_draw_Source = `
@@ -100,8 +206,11 @@ uniform vec2 resolution;
 uniform sampler2D texture;
 
 void main() {
-  vec2 uv = gl_FragCoord.xy/resolution;
-  gl_FragColor = vec4(texture2D(texture, uv));
+  vec2 uv = (gl_FragCoord.xy)/(resolution);
+  //vec2 uv = gl_FragCoord.xy/resolution;
+  
+  gl_FragColor = texture2D(texture, uv);
+  //gl_FragColor = vec4(1.0);
 }`;
 
 
@@ -126,14 +235,20 @@ async function main() {
   gl.clear(gl.COLOR_BUFFER_BIT);
   
   const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+  const sebolShader = loadShader(gl, gl.FRAGMENT_SHADER, fs_sebol_source);
+  const downscaleShader = loadShader(gl, gl.FRAGMENT_SHADER, fs_downscale_source);
   const drawShader = loadShader(gl, gl.FRAGMENT_SHADER, fs_draw_Source);
   
-  const shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
+  const SebolProgram = gl.createProgram();
+  gl.attachShader(SebolProgram, vertexShader);
+  gl.attachShader(SebolProgram, sebolShader);
+  gl.linkProgram(SebolProgram);
   
+  const downscaleProgram = gl.createProgram();
+  gl.attachShader(downscaleProgram, vertexShader);
+  gl.attachShader(downscaleProgram, downscaleShader);
+  gl.linkProgram(downscaleProgram);
+
   const drawProgram = gl.createProgram();
   gl.attachShader(drawProgram, vertexShader);
   gl.attachShader(drawProgram, drawShader);
@@ -141,27 +256,41 @@ async function main() {
 
   // If creating the shader program failed, alert
 
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(drawProgram, gl.LINK_STATUS)) {
+  if (!gl.getProgramParameter(SebolProgram, gl.LINK_STATUS) || !gl.getProgramParameter(drawProgram, gl.LINK_STATUS || !gl.getProgramParameter(downscaleProgram, gl.LINK_STATUS))) {
     alert(
       `Unable to initialize the shader program: ${gl.getProgramInfoLog(
-        shaderProgram,
+        SebolProgram,
       )}`,
     );
     return null;
   }
   
-  const programInfo = {
-  program: shaderProgram,
+  const sebolProgramInfo = {
+  program: SebolProgram,
 	attribLocations: {
-	  vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
+	  vertexPosition: gl.getAttribLocation(SebolProgram, "aVertexPosition"),
 	},
 	uniformLocations: {
-	  projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
-	  modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
-	  resolution: gl.getUniformLocation(shaderProgram, "resolution"),
-      texture: gl.getUniformLocation(shaderProgram, "texture")
+	  projectionMatrix: gl.getUniformLocation(SebolProgram, "uProjectionMatrix"),
+	  modelViewMatrix: gl.getUniformLocation(SebolProgram, "uModelViewMatrix"),
+	  resolution: gl.getUniformLocation(SebolProgram, "resolution"),
+      texture: gl.getUniformLocation(SebolProgram, "texture")
 	},
   };
+
+  const downscaleProgramInfo = {
+    program: downscaleProgram,
+	attribLocations: {
+	  vertexPosition: gl.getAttribLocation(downscaleProgram, "aVertexPosition"),
+	},
+	uniformLocations: {
+	  projectionMatrix: gl.getUniformLocation(downscaleProgram, "uProjectionMatrix"),
+	  modelViewMatrix: gl.getUniformLocation(downscaleProgram, "uModelViewMatrix"),
+	  resolution: gl.getUniformLocation(downscaleProgram, "resolution"),
+      texture: gl.getUniformLocation(downscaleProgram, "texture")
+	},
+  };
+
 
   const drawProgramInfo = {
     program: drawProgram,
@@ -178,25 +307,35 @@ async function main() {
 
   const in_texture = await loadTexture(gl);
   
-  const int_texture = await blankTexture(gl);
-  const int_frameBuffer = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, int_frameBuffer);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, int_texture, 0);
+  const sebol_texture = await blankTexture(gl, 640, 480);
+  const sebol_framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, sebol_framebuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sebol_texture, 0);
+
+  const downscale_texture = await blankTexture(gl, 80, 60);
+  const downscale_frameBuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, downscale_frameBuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, downscale_texture, 0);
 
   const PositionBuffer = initPositionBuffer(gl);
   
   let buffers = {position: PositionBuffer, texture: in_texture};
   
-  gl.bindFramebuffer(gl.FRAMEBUFFER, int_frameBuffer);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, sebol_framebuffer);
   gl.bindTexture(gl.TEXTURE_2D, in_texture);
-  drawIntermediate(gl, drawProgramInfo, buffers);
-  
-  buffers = {position: PositionBuffer, texture: int_texture};
+  drawIntermediate(gl, sebolProgramInfo, buffers);
 
- // Draw the scene
- gl.bindFramebuffer(gl.FRAMEBUFFER, null);
- gl.bindTexture(gl.TEXTURE_2D, int_texture);
- drawScreen(gl, programInfo, buffers);
+  buffers = {position: PositionBuffer, texture: sebol_texture};
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, sebol_texture);
+  drawDownscaled(gl, downscaleProgramInfo, buffers);
+
+  // buffers = {position: PositionBuffer, texture: downscale_texture};
+
+  //  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  //  gl.bindTexture(gl.TEXTURE_2D, downscale_texture);
+  //  drawScreen(gl, drawProgramInfo, buffers);
 }
 
 function drawScreen(gl, programInfo, buffers) {
@@ -210,7 +349,7 @@ function drawScreen(gl, programInfo, buffers) {
   
   gl.uniform2fv(
   	programInfo.uniformLocations.resolution,
-	[640,480]
+	[80,60]
   )
   
   {
@@ -233,6 +372,28 @@ function drawIntermediate(gl, programInfo, buffers) {
   gl.uniform2fv(
   	programInfo.uniformLocations.resolution,
 	[640,480]
+  )
+  
+  {
+    const offset = 0;
+    const vertexCount = 4;
+    gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+  }
+}
+
+function drawDownscaled(gl, programInfo, buffers) {
+  gl.useProgram(programInfo.program)
+  gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
+  gl.clearDepth(1.0); // Clear everything
+  gl.enable(gl.DEPTH_TEST); // Enable depth testing
+  gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	
+  set_MVP(gl, programInfo, buffers);
+  
+  gl.uniform2fv(
+  	programInfo.uniformLocations.resolution,
+	[80,60]
   )
   
   {

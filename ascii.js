@@ -25,9 +25,9 @@ const asciiFragmentCode = `
 		vec2 coord = gl_FragCoord.xy - mod(gl_FragCoord.xy, 8.0);
 		vec4 rgba = texture2D(uInput, coord / canvasSize);
 		
-		float offset = 8.0*floor(luminance(rgba)*10.0);
+		float offset = 8.0*floor(luminance(rgba)*11.0);
 		vec2 uv = vec2(
-			(offset + mod(gl_FragCoord.x, 8.0)) / 80.0,
+			(offset + mod(gl_FragCoord.x, 8.0)) / 88.0,
 			mod(gl_FragCoord.y, 8.0) / 8.0
 		);
 		gl_FragColor = texture2D(uCharset, uv) * rgba;
@@ -78,8 +78,8 @@ const sobelFragmentCode = `
 		float n[9];
 		  make_kernel( n, texture, uv);
 
-		  float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
-		float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
+		  float sobel_edge_h = 3.0*n[2] + (10.0*n[5]) + 3.0*n[8] - (3.0*n[0] + (10.0*n[3]) + 3.0*n[6]);
+		float sobel_edge_v = 3.0*n[0] + (10.0*n[1]) + 3.0*n[2] - (3.0*n[6] + (10.0*n[7]) + 3.0*n[8]);
 		
 		float blue = 0.0;
 		bool d_flag = true;
@@ -205,8 +205,6 @@ vec4 calc_mode() {
 }
 
 void main() {
-  gl_FragColor = texture2D(texture, gl_FragCoord.xy / resolution);
-  return;
   vec2 uv = gl_FragCoord.xy/resolution;
   gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -298,18 +296,19 @@ async function initSobel() {
 
 async function initEdge() {	
 	const resolution = egl.getUniformLocation(eprogram, "resolution");
-	egl.uniform2f(resolution, eCanvas.width*8, eCanvas.height*8);
+	egl.uniform2f(resolution, eCanvas.width, eCanvas.height);
 
 	let ctx2 = intSobel.getContext("2d");
 	ctx2.clearRect(0, 0, intSobel.width, intSobel.height);
-	ctx2.drawImage(aCanvas, 0, 0);
-	const sData = ctx.getImageData(0, 0, intSobel.width, intSobel.height);
+	ctx2.drawImage(sCanvas, 0, 0);
+	const sData = ctx2.getImageData(0, 0, intSobel.width, intSobel.height);
 	egl.activeTexture(egl.TEXTURE0);
 	loadTexture(egl, sData);
 }
 
 await initAscii();
 await initSobel();
+await initEdge();
 async function render() {	
 	ctx.drawImage(video, 0, 0, vidCanvas.width, vidCanvas.height);
 
@@ -325,7 +324,7 @@ async function render() {
 
 	let ctx2 = intSobel.getContext("2d");
 	ctx2.clearRect(0, 0, intSobel.width, intSobel.height);
-	ctx2.drawImage(aCanvas, 0, 0);
+	ctx2.drawImage(sCanvas, 0, 0);
 	const sData = ctx2.getImageData(0, 0, intSobel.width, intSobel.height);
 	egl.activeTexture(egl.TEXTURE0);
 	loadTexture(egl, sData);

@@ -16,26 +16,26 @@ navigator.mediaDevices
         video = document.getElementById("webcam");
         video.srcObject = mediaStream;
         video.onloadedmetadata = () =>{
-            
+
             video.play();
-const updateCanvas = (now, metadata) => {
+            const updateCanvas = (now, metadata) => {
 
-    ctx.drawImage(video, 0, 0, canvasvid.width, canvasvid.height);
-    
+                ctx.drawImage(video, 0, 0, canvasvid.width, canvasvid.height);
 
-        main(ctx.getImageData(0,0,canvasvid.width,canvasvid.height))
 
-    video.requestVideoFrameCallback(updateCanvas);
+                main(ctx.getImageData(0,0,canvasvid.width,canvasvid.height))
 
-  };  
+                video.requestVideoFrameCallback(updateCanvas);
 
-  video.requestVideoFrameCallback(updateCanvas);  
-};
-          
+            };  
+
+            video.requestVideoFrameCallback(updateCanvas);  
+        };
+
     })  
-.catch((err)=>{
-    console.error('${err.name}: ${err.message}');
-})
+    .catch((err)=>{
+        console.error('${err.name}: ${err.message}');
+    })
 
 
 
@@ -68,7 +68,7 @@ function main(texture) {
     gl.attachShader(drawProgram, vertexShader);
     gl.attachShader(drawProgram, drawShader);
     gl.linkProgram(drawProgram);
-    
+
     // If creating the shader program failed, alert
 
     if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(drawProgram, gl.LINK_STATUS)) {

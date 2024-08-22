@@ -25,18 +25,18 @@ await new Promise(resolve => {
     })
 });
 
-await ascii.init();
 await sobel.init();
 await edge.init();
+await ascii.init();
 
 const vidCanvas = document.getElementById("vidCanvas");
 const ctx = vidCanvas.getContext("2d");
 
 function render() {
 	ctx.drawImage(video, 0, 0, vidCanvas.width, vidCanvas.height);
-	ascii.render();
 	sobel.render();
 	edge.render();
+	ascii.render();
 	requestAnimationFrame(render);
 }
 

@@ -1,5 +1,5 @@
 import { gaussVertexShaderSource } from "./lib/vertexShader.js";
-import { gaussFragmentShaderSource, sobelFragmentShaderSource } from "./lib/fragmentShader.js";
+import { gaussFragmentShaderSource, sobelFragmentShaderSource, downscaleFragmentShaderSource } from "./lib/fragmentShader.js";
 import { blankTexture, loadShader,loadTexture,} from "./lib/helper.js";
 const webcamConstraints = {
     audio: false,
@@ -94,7 +94,8 @@ function main(texture) {
 
     const gaussVertexShader = loadShader(gl, gl.VERTEX_SHADER, gaussVertexShaderSource);
     const gaussFragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, gaussFragmentShaderSource);
-    const sobelFragmentShader = loadShader(gl,gl.FRAGMENT_SHADER, sobelFragmentShaderSource)
+    const sobelFragmentShader = loadShader(gl,gl.FRAGMENT_SHADER, sobelFragmentShaderSource);
+    const downscaleFragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, downscaleFragmentShaderSource);
 
     const gaussShaderProgram = gl.createProgram();
     gl.attachShader(gaussShaderProgram, gaussVertexShader);
@@ -106,9 +107,14 @@ function main(texture) {
     gl.attachShader(sobelShaderProgram, sobelFragmentShader);
     gl.linkProgram(sobelShaderProgram);
 
+    const downscaleShaderProgram = gl.createProgram();
+    gl.attachShader(downscaleShaderProgram, gaussVertexShader);
+    gl.attachShader(downscaleShaderProgram, downscaleFragmentShader);
+    gl.linkProgram(downscaleShaderProgram);
+
     // If creating the shader program failed, alert
 
-    if (!gl.getProgramParameter(gaussShaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(sobelShaderProgram, gl.LINK_STATUS)) {
+    if (!gl.getProgramParameter(gaussShaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(sobelShaderProgram, gl.LINK_STATUS) ||  !gl.getProgramParameter(downscaleShaderProgram, gl.LINK_STATUS)) {
         alert(
             `Unable to initialize the shader program: ${gl.getProgramInfoLog(
                 gaussShaderProgram,
@@ -135,8 +141,8 @@ function main(texture) {
 
     const positionBuffer = gl.createBuffer();
     const textureCoordBuffer = gl.createBuffer();
-    const positions = [1.0,1.0,1.0,-1.0,-1.0,1.0,-1.1,-1.1];
-    const textureCoords = [1.0,1.0,1.0,0.0,0.0,1.0,0.0,0.0];
+    const positions = [1.0,1.0, 1.0,-1.0, -1.0,1.0, -1.0,-1.0];
+    const textureCoords = [1.0,1.0, 1.0,0.0, 0.0,1.0, 0.0,0.0];
 
     // G A U S S I A N   D I F F E R E N C E     S H A D E R
     {
@@ -198,9 +204,39 @@ function main(texture) {
         gl.uniform1i(textureUniformLocation, 0);
         gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0 ,4);
 
+    }
+    // D O W N S C A L E     S H A D E R
+    {
+        gl.useProgram(downscaleShaderProgram);
+
+        const vertexPositionAttributeLocation=gl.getAttribLocation(downscaleShaderProgram, "a_vertexPosition");
+        const textureCoordsAttributeLocation=gl.getAttribLocation(downscaleShaderProgram, "a_texcoord");
+
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions),gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(vertexPositionAttributeLocation);
+        gl.vertexAttribPointer(vertexPositionAttributeLocation,2,gl.FLOAT,false,0,0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords),gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(textureCoordsAttributeLocation);
+        gl.vertexAttribPointer(textureCoordsAttributeLocation,2,gl.FLOAT,false,0,0);
+
+        const textureSizeUniformLocation = gl.getUniformLocation(downscaleShaderProgram, "u_textureSize");
+        const textureUniformLocation = gl.getUniformLocation(downscaleShaderProgram, "u_texture");
+
+        gl.bindTexture(gl.TEXTURE_2D, inTexture);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateTexture, 0);
+
+        gl.uniform1i(textureUniformLocation, 0);
+        gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0 ,4);
     }
 }
 

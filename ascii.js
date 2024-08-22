@@ -25,12 +25,27 @@ const fragmentCode = `
 		vec2 coord = gl_FragCoord.xy - mod(gl_FragCoord.xy, 8.0);
 		vec4 rgba = texture2D(uInput, coord / resolution);
 		
-		float offset = 8.0*floor(luminance(rgba)*11.0);
-		vec2 uv = vec2(
-			(offset + mod(gl_FragCoord.x, 8.0)) / 88.0,
-			mod(gl_FragCoord.y, 8.0) / 8.0
+		float offset1 = 8.0*floor(luminance(rgba)*11.0);
+		vec2 uv1 = vec2(
+			(offset1 + mod(gl_FragCoord.x, 8.0)) / 88.0,
+			0.5 + mod(gl_FragCoord.y, 8.0) / 16.0
 		);
-		gl_FragColor = texture2D(uCharset, uv) * texture2D(uEdge, coord / resolution);
+
+		vec2 coord2 = gl_FragCoord.xy - mod(gl_FragCoord.xy, 8.0) + vec2(4.0, 4.0);
+		vec4 edge = texture2D(uEdge, coord2 / resolution);
+		float offset2 = 8.0 * (edge.r + 2.0*edge.g + 4.0*edge.b);
+		vec2 uv2 = vec2(
+			(offset2 + mod(gl_FragCoord.x, 8.0)) / 88.0,
+			mod(gl_FragCoord.y, 8.0) / 16.0
+		);
+
+		vec4 t1 = texture2D(uCharset, uv1) * rgba;
+		vec4 t2 = texture2D(uCharset, uv2) * rgba;
+
+		gl_FragColor = texture2D(uCharset, uv1) * rgba;
+		if (offset2 > 0.9) {
+			gl_FragColor = texture2D(uCharset, uv2) * rgba;
+		}
 	}
 `;
 

@@ -1,6 +1,6 @@
 import { vertexShaderSource } from "./lib/vertexShader.js";
-import { fragmentShaderSource,fs_draw_Source } from "./lib/fragmentShader.js";
-import { loadShader,set_MVP,initPositionBuffer,loadTexture,blankTexture,loadImage } from "./lib/helper.js";
+import { fragmentShaderSource } from "./lib/fragmentShader.js";
+import { loadShader,loadTexture,} from "./lib/helper.js";
 const webcamConstraints = {
     audio: false,
     video: {width : 1600, height: 900}
@@ -9,6 +9,74 @@ let video
 const canvas = document.querySelector("#glcanvas");
 const canvasvid = document.getElementById("vidcanvas");
 const ctx = canvasvid.getContext("2d");
+
+
+function gaussianKernelValues(x,y,sigma){
+    return Math.pow(Math.E,- ((x*x+y*y)/(2*sigma*sigma)))/(2*Math.PI*sigma*sigma);
+}
+
+
+let SIGMA = 4;
+const kernelSize = 21;
+
+
+let gaussKernel1=[];
+let gaussKernel1Normalizer=0.0;
+let count=0;
+
+for(let i=0;i<kernelSize;i++){
+    for(let j=0;j<kernelSize;j++){
+        let val =gaussianKernelValues(i,j,SIGMA) ;
+        if(val<SIGMA * 10e-8) val=0;
+        gaussKernel1[count]=val;
+        gaussKernel1Normalizer += val;
+        count++;
+    }
+}
+
+console.log(gaussKernel1)
+SIGMA = 1;
+
+let gaussKernel2=[];
+let gaussKernel2Normalizer=0.0;
+count=0;
+for(let i=0;i<kernelSize;i++){
+    for(let j=0;j<kernelSize;j++){
+        let val =gaussianKernelValues(i,j,SIGMA) ;
+        if(val<SIGMA * 10e-8) val=0;
+        gaussKernel2[count]=val;
+        gaussKernel2Normalizer += val;
+        count++;
+    }
+}
+
+
+/*let gaussKernel1 = [
+     -1, -1, -1,
+     -1,  8, -1,
+     -1, -1, -1
+ ];
+ */
+
+/*
+gaussKernelSubValue00= gaussianKernelValues(0,0,SIGMA);
+gaussKernelSubValue10 = gaussianKernelValues(1,0,SIGMA);
+gaussKernelSubValue20 = gaussianKernelValues(2,0,SIGMA);
+gaussKernelSubValue11 = gaussianKernelValues(1,1,SIGMA);
+gaussKernelSubValue12 = gaussianKernelValues(1,2,SIGMA);
+gaussKernelSubValue22 = gaussianKernelValues(2,2,SIGMA);
+
+let gaussKernel2Normalizer = gaussKernelSubValue00 + gaussKernelSubValue10 * 4+ gaussKernelSubValue20 *4 + gaussKernelSubValue11 *4 + gaussKernelSubValue12 * 8 + gaussKernelSubValue22 * 4;
+
+let gaussKernel2 = [
+    gaussKernelSubValue22,gaussKernelSubValue12,gaussKernelSubValue20,gaussKernelSubValue12,gaussKernelSubValue22,
+    gaussKernelSubValue12, gaussKernelSubValue11,gaussKernelSubValue10, gaussKernelSubValue11,gaussKernelSubValue12,
+    gaussKernelSubValue20,gaussKernelSubValue10, gaussKernelSubValue00,gaussKernelSubValue10,gaussKernelSubValue20,
+    gaussKernelSubValue12,gaussKernelSubValue11,gaussKernelSubValue10,gaussKernelSubValue11,gaussKernelSubValue12,
+    gaussKernelSubValue22,gaussKernelSubValue12,gaussKernelSubValue20,gaussKernelSubValue12,gaussKernelSubValue22
+];
+*/
+
 
 navigator.mediaDevices
     .getUserMedia(webcamConstraints)
@@ -22,9 +90,7 @@ navigator.mediaDevices
 
                 ctx.drawImage(video, 0, 0, canvasvid.width, canvasvid.height);
 
-
                 main(ctx.getImageData(0,0,canvasvid.width,canvasvid.height))
-
                 video.requestVideoFrameCallback(updateCanvas);
 
             };  
@@ -36,8 +102,6 @@ navigator.mediaDevices
     .catch((err)=>{
         console.error('${err.name}: ${err.message}');
     })
-
-
 
 function main(texture) {
     // Initialize the GL context
@@ -57,21 +121,15 @@ function main(texture) {
 
     const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-    const drawShader = loadShader(gl, gl.FRAGMENT_SHADER, fs_draw_Source);
 
     const shaderProgram = gl.createProgram();
     gl.attachShader(shaderProgram, vertexShader);
     gl.attachShader(shaderProgram, fragmentShader);
     gl.linkProgram(shaderProgram);
 
-    const drawProgram = gl.createProgram();
-    gl.attachShader(drawProgram, vertexShader);
-    gl.attachShader(drawProgram, drawShader);
-    gl.linkProgram(drawProgram);
-
     // If creating the shader program failed, alert
 
-    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(drawProgram, gl.LINK_STATUS)) {
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
         alert(
             `Unable to initialize the shader program: ${gl.getProgramInfoLog(
                 shaderProgram,
@@ -80,94 +138,48 @@ function main(texture) {
         return null;
     }
 
-    const programInfo = {
-        program: shaderProgram,
-        attribLocations: {
-            vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
-        },
-        uniformLocations: {
-            projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
-            modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
-            resolution: gl.getUniformLocation(shaderProgram, "resolution"),
-            texture: gl.getUniformLocation(shaderProgram, "texture")
-        },
-    };
+    gl.useProgram(shaderProgram);
+    gl.viewport(0,0,gl.canvas.width,gl.canvas.height);
+    gl.clearColor(0,0,0,0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
-    const drawProgramInfo = {
-        program: drawProgram,
-        attribLocations: {
-            vertexPosition: gl.getAttribLocation(drawProgram, "aVertexPosition"),
-        },
-        uniformLocations: {
-            projectionMatrix: gl.getUniformLocation(drawProgram, "uProjectionMatrix"),
-            modelViewMatrix: gl.getUniformLocation(drawProgram, "uModelViewMatrix"),
-            resolution: gl.getUniformLocation(drawProgram, "resolution"),
-            texture: gl.getUniformLocation(drawProgram, "texture")
-        },
-    };
+    const inTexture =  loadTexture(gl,texture);
 
-    const in_texture =  loadTexture(gl,texture);
 
-    const int_texture =  blankTexture(gl);
-    const int_frameBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, int_frameBuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, int_texture, 0);
+    const vertexPositionAttributeLocation=gl.getAttribLocation(shaderProgram, "a_vertexPosition");
+    const textureCoordsAttributeLocation=gl.getAttribLocation(shaderProgram, "a_texcoord");
+    const gaussianKernel1UniformLocation = gl.getUniformLocation(shaderProgram, "u_gaussianKernel1");
+    const gaussianKernel1WeightUniformLocation = gl.getUniformLocation(shaderProgram, "u_gaussianKernel1Weight");
+    const gaussianKernel2UniformLocation = gl.getUniformLocation(shaderProgram, "u_gaussianKernel2");
+    const gaussianKernel2WeightUniformLocation = gl.getUniformLocation(shaderProgram, "u_gaussianKernel2Weight");
+    const uniformTexture = gl.getUniformLocation(shaderProgram,"u_texture");
+    const textureSizeUniformLocation = gl.getUniformLocation(shaderProgram, "u_textureSize");
 
-    const PositionBuffer = initPositionBuffer(gl);
+    const positionBuffer = gl.createBuffer();
+    const textureCoordBuffer = gl.createBuffer();
+    const positions = [1.0,1.0,1.0,-1.0,-1.0,1.0,-1.1,-1.1];
+    const textureCoords = [1.0,1.0,1.0,0.0,0.0,1.0,0.0,0.0];
 
-    let buffers = {position: PositionBuffer, texture: in_texture};
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(vertexPositionAttributeLocation);
+    gl.vertexAttribPointer(vertexPositionAttributeLocation,2,gl.FLOAT,false,0,0);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, int_frameBuffer);
-    gl.bindTexture(gl.TEXTURE_2D, in_texture);
-    drawIntermediate(gl, drawProgramInfo, buffers);
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(textureCoordsAttributeLocation);
+    gl.vertexAttribPointer(textureCoordsAttributeLocation,2,gl.FLOAT,false,0,0);
 
-    buffers = {position: PositionBuffer, texture: int_texture};
 
-    // Draw the scene
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.bindTexture(gl.TEXTURE_2D, int_texture);
-    drawScreen(gl, programInfo, buffers);
+    gl.uniform1fv(gaussianKernel1UniformLocation,gaussKernel1);
+    gl.uniform1fv(gaussianKernel2UniformLocation,gaussKernel2);
+    gl.uniform1f(gaussianKernel1WeightUniformLocation, gaussKernel1Normalizer);
+    gl.uniform1f(gaussianKernel2WeightUniformLocation, gaussKernel2Normalizer);
+    gl.uniform1i(uniformTexture, 0);
+    gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+
 }
 
-function drawScreen(gl, programInfo, buffers) {
-    gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
-    gl.clearDepth(1.0); // Clear everything
-    gl.enable(gl.DEPTH_TEST); // Enable depth testing
-    gl.depthFunc(gl.LEQUAL); // Near things obscure far things
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    set_MVP(gl, programInfo, buffers);
-
-    gl.uniform2fv(
-        programInfo.uniformLocations.resolution,
-        [640,480]
-    )
-
-    {
-        const offset = 0;
-        const vertexCount = 4;
-        gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
-    }
-}
-
-function drawIntermediate(gl, programInfo, buffers) {
-    gl.useProgram(programInfo.program)
-    gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
-    gl.clearDepth(1.0); // Clear everything
-    gl.enable(gl.DEPTH_TEST); // Enable depth testing
-    gl.depthFunc(gl.LEQUAL); // Near things obscure far things
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    set_MVP(gl, programInfo, buffers);
-
-    gl.uniform2fv(
-        programInfo.uniformLocations.resolution,
-        [640,480]
-    )
-
-    {
-        const offset = 0;
-        const vertexCount = 4;
-        gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
-    }
-}

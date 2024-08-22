@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <script src="common.js"></script>
-<script type="module" src="ascii.js"></script>
+<script type="module" src="main.js"></script>
 
-<video id="webcam" width="640" height="360">
-</video> 
-<canvas hidden attribute="willReadFrequently" id="vidcanvas" width="640" height="360"></canvas>
-
-
+<video id="webcam" width="640" height="360"></video> 
+<canvas hidden attribute="willReadFrequently" id="vidCanvas"></canvas>
 <canvas id="asciiCanvas" width="640" height="360"></canvas>
 <canvas id="sobelCanvas" width="640" height="360"></canvas>
-<canvas id="intSobel" width="640" height="360"></canvas>
+<canvas hidden id="intSobel" width="640" height="360"></canvas>
 <canvas id="edgeCanvas" width="80" height="45"></canvas>
 
 <style>

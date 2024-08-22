@@ -141,4 +141,4 @@ function loadImage(url) {
     });
 }
 
-export { initPositionBuffer, loadShader, loadTexture, set_MVP, blankTexture }
+export { initPositionBuffer, loadShader, loadTexture, blankTexture,setPositionAttribute }

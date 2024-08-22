@@ -1,12 +1,9 @@
-import {initPositionBuffer, loadShader, loadTexture, set_MVP, blankTexture} from "./helpers.js";
+import {initPositionBuffer, loadShader, loadTexture, setPositionAttribute, blankTexture} from "./helpers.js";
 
 const vsSource = `
-attribute vec4 aVertexPosition;
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
+attribute vec4 a_vertexPosition;
 void main() {
-  vec4 vpos = aVertexPosition;
-  gl_Position = uProjectionMatrix * uModelViewMatrix * vpos;
+  gl_Position = a_vertexPosition;
 }`;
 
 const fs_sebol_source = `
@@ -95,7 +92,45 @@ uniform vec2 resolution;
 uniform sampler2D texture;
 
 vec4 convert(in vec4 color) {
-  vec4 result = color;
+  vec4 result = colorvec2 uv = gl_FragCoord.xy/resolution;
+    
+    float new_colour = dot(texture2D(texture, uv).rgb, vec3(0.2126, 0.7152, 0.0722));
+	
+    /* float gaussian_1 = gaussian(, 1);
+    float gaussian_2 = gaussian(, 0.3);
+    float diff = gaussian_2 - gaussian_1; */
+    
+    float n[9];
+	  make_kernel( n, texture, uv);
+
+	  float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
+  	float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
+    
+    float blue = 0.0;
+    bool d_flag = true;
+    
+    if (abs(sobel_edge_v) < SOBEL_THRESHOLD) {
+        gl_FragColor = vec4(0.0);
+        d_flag = false;
+    }
+    if (abs(sobel_edge_h) < SOBEL_THRESHOLD) {
+        gl_FragColor = vec4(0.0);
+        d_flag = false;
+    }
+        
+    if (d_flag) {    
+        if (abs(abs(sobel_edge_h) - abs(sobel_edge_v)) > 0.25) {
+            if (abs(sobel_edge_h) > abs(sobel_edge_v)) {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // Horizontal
+            } else { 
+                gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); // Vertical
+            }
+        } else if (sobel_edge_h*sobel_edge_v > 0.0) {
+            gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); // '/'
+        } else {
+            gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0); // '\\'
+        }
+    };
   result.w = 0.0;
   if (color.x + color.y > 1.0) {
     result = vec4(0.0, 0.0, 0.0, 1.0);
@@ -272,12 +307,10 @@ async function main() {
   const sebolProgramInfo = {
   program: SebolProgram,
 	attribLocations: {
-	  vertexPosition: gl.getAttribLocation(SebolProgram, "aVertexPosition"),
+	  vertexPosition: gl.getAttribLocation(SebolProgram, "a_vertexPosition"),
 	},
 	uniformLocations: {
-	  projectionMatrix: gl.getUniformLocation(SebolProgram, "uProjectionMatrix"),
-	  modelViewMatrix: gl.getUniformLocation(SebolProgram, "uModelViewMatrix"),
-	  resolution: gl.getUniformLocation(SebolProgram, "resolution"),
+        resolution: gl.getUniformLocation(SebolProgram, "resolution"),
       texture: gl.getUniformLocation(SebolProgram, "texture")
 	},
   };
@@ -285,29 +318,14 @@ async function main() {
   const downscaleProgramInfo = {
     program: downscaleProgram,
 	attribLocations: {
-	  vertexPosition: gl.getAttribLocation(downscaleProgram, "aVertexPosition"),
+	  vertexPosition: gl.getAttribLocation(downscaleProgram, "a_vertexPosition"),
 	},
 	uniformLocations: {
-	  projectionMatrix: gl.getUniformLocation(downscaleProgram, "uProjectionMatrix"),
-	  modelViewMatrix: gl.getUniformLocation(downscaleProgram, "uModelViewMatrix"),
 	  resolution: gl.getUniformLocation(downscaleProgram, "resolution"),
       texture: gl.getUniformLocation(downscaleProgram, "texture")
 	},
   };
 
-
-  const drawProgramInfo = {
-    program: drawProgram,
-	attribLocations: {
-	  vertexPosition: gl.getAttribLocation(drawProgram, "aVertexPosition"),
-	},
-	uniformLocations: {
-	  projectionMatrix: gl.getUniformLocation(drawProgram, "uProjectionMatrix"),
-	  modelViewMatrix: gl.getUniformLocation(drawProgram, "uModelViewMatrix"),
-	  resolution: gl.getUniformLocation(drawProgram, "resolution"),
-      texture: gl.getUniformLocation(drawProgram, "texture")
-	},
-  };
 
   const in_texture = await loadTexture(gl);
   
@@ -327,7 +345,7 @@ async function main() {
   
   gl.bindFramebuffer(gl.FRAMEBUFFER, sebol_framebuffer);
   gl.bindTexture(gl.TEXTURE_2D, in_texture);
-  drawIntermediate(gl, sebolProgramInfo, buffers);
+  drawScreen(gl, sebolProgramInfo, buffers);
 
   buffers = {position: PositionBuffer, texture: sebol_texture};
 
@@ -349,29 +367,13 @@ function drawScreen(gl, programInfo, buffers) {
   gl.depthFunc(gl.LEQUAL); // Near things obscure far things
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	
-  set_MVP(gl, programInfo, buffers);
-  
-  gl.uniform2fv(
-  	programInfo.uniformLocations.resolution,
-	[80,60]
-  )
-  
-  {
-    const offset = 0;
-    const vertexCount = 4;
-    gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
-  }
-}
+  	  // Tell WebGL how to pull out the positions from the position
+  // buffer into the vertexPosition attribute.
+  setPositionAttribute(gl, buffers, programInfo);
 
-function drawIntermediate(gl, programInfo, buffers) {
-  gl.useProgram(programInfo.program)
-  gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
-  gl.clearDepth(1.0); // Clear everything
-  gl.enable(gl.DEPTH_TEST); // Enable depth testing
-  gl.depthFunc(gl.LEQUAL); // Near things obscure far things
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	
-  set_MVP(gl, programInfo, buffers);
+  // Tell WebGL to use our program when drawing
+  gl.useProgram(programInfo.program);
+
   
   gl.uniform2fv(
   	programInfo.uniformLocations.resolution,
@@ -385,6 +387,7 @@ function drawIntermediate(gl, programInfo, buffers) {
   }
 }
 
+
 function drawDownscaled(gl, programInfo, buffers) {
   gl.useProgram(programInfo.program)
   gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
@@ -392,8 +395,14 @@ function drawDownscaled(gl, programInfo, buffers) {
   gl.enable(gl.DEPTH_TEST); // Enable depth testing
   gl.depthFunc(gl.LEQUAL); // Near things obscure far things
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	
-  set_MVP(gl, programInfo, buffers);
+	  // Tell WebGL how to pull out the positions from the position
+  // buffer into the vertexPosition attribute.
+  setPositionAttribute(gl, buffers, programInfo);
+
+  // Tell WebGL to use our program when drawing
+  gl.useProgram(programInfo.program);
+
+
   
   gl.uniform2fv(
   	programInfo.uniformLocations.resolution,

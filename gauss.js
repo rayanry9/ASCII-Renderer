@@ -19,7 +19,7 @@ uniform float u_gaussianKernel2[441];
 uniform float u_gaussianKernel1Weight;
 uniform float u_gaussianKernel2Weight;
 
-#define GAUSS_THRESHOLD 0.75
+#define GAUSS_THRESHOLD 1.1
 void main()
 {
 	vec2 v_texcoord = gl_FragCoord.xy / resolution;
@@ -61,7 +61,7 @@ function gaussianKernelValues(x, y, sigma){
 }
 
 
-const SIGMA1 = 1.4;
+const SIGMA1 = 1.0;
 const SIGMA2 = 0.7;
 const kernelSize = 21;
 

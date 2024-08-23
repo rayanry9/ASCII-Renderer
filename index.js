@@ -101,6 +101,8 @@ function main(texture) {
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
 
     const gaussVertexShader = loadShader(gl, gl.VERTEX_SHADER, gaussVertexShaderSource);
     const gaussFragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, gaussFragmentShaderSource);
@@ -112,6 +114,7 @@ function main(texture) {
     gl.attachShader(gaussShaderProgram, gaussVertexShader);
     gl.attachShader(gaussShaderProgram, gaussFragmentShader);
     gl.linkProgram(gaussShaderProgram);
+
 
     const sobelShaderProgram = gl.createProgram();
     gl.attachShader(sobelShaderProgram, gaussVertexShader);
@@ -139,7 +142,7 @@ function main(texture) {
         return null;
     }
 
-    gl.viewport(0,0,gl.canvas.width,gl.canvas.height);
+    gl.viewport(0,0,gl.canvas.width,gl.canvas.height/3);
     gl.clearColor(0,0,0,0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -193,9 +196,22 @@ function main(texture) {
         gl.uniform1f(gaussianKernel2WeightUniformLocation, gaussKernel2Normalizer);
         gl.uniform1i(uniformTexture, 0);
         gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
+gl.viewport(0,1800,gl.canvas.width,gl.canvas.height/3);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0,4);
+
+
+gl.viewport(0,0,gl.canvas.width,gl.canvas.height/3);
+
+
+ gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,intermediateTexture,0);
+
 
         gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-
+    
+        
     }
     //
     // S O B E L     S H A D E R
@@ -226,14 +242,27 @@ function main(texture) {
         gl.uniform1i(textureUniformLocation, 0);
         gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
 
+gl.viewport(0,900,gl.canvas.width,gl.canvas.height/3);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0,4);
+
+
+
+gl.viewport(0,0,gl.canvas.width,gl.canvas.height/3);
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, inTexture, 0);
         //gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0 ,4);
+
+        
+        
 
     }
     //
     // D O W N S C A L E     S H A D E R
     {
+  
         gl.useProgram(downscaleShaderProgram);
 
         const vertexPositionAttributeLocation=gl.getAttribLocation(downscaleShaderProgram, "a_vertexPosition");
@@ -254,13 +283,18 @@ function main(texture) {
         const textureUniformLocation = gl.getUniformLocation(downscaleShaderProgram, "u_texture");
 
         gl.bindTexture(gl.TEXTURE_2D, inTexture);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateTexture, 0);
 
-        gl.uniform1i(textureUniformLocation, 0);
+               gl.uniform1i(textureUniformLocation, 0);
         gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+
+
+        gl.viewport(0,0,gl.canvas.width,gl.canvas.height/3);
+ gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateTexture, 0);
+
         gl.drawArrays(gl.TRIANGLE_STRIP, 0 ,4);
+        
     }
 
        
@@ -268,6 +302,8 @@ function main(texture) {
     // A S C I I   S H A D E R
 
     {
+
+        gl.viewport(0,0,gl.canvas.width,gl.canvas.height/3);
         inTexture= loadTexture(gl,texture);
         gl.useProgram(asciiShaderProgram);
 

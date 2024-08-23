@@ -1,6 +1,10 @@
 import { gaussVertexShaderSource } from "./lib/vertexShader.js";
-import { gaussFragmentShaderSource, sobelFragmentShaderSource, downscaleFragmentShaderSource } from "./lib/fragmentShader.js";
-import { blankTexture, loadShader,loadTexture,} from "./lib/helper.js";
+import { gaussFragmentShaderSource, sobelFragmentShaderSource, downscaleFragmentShaderSource, asciiFragmentShaderSource } from "./lib/fragmentShader.js";
+import { blankTexture, loadImage, loadShader,loadTexture,} from "./lib/helper.js";
+
+const charsetTexture = await loadImage('charset.png')
+const circleImg = await loadImage('image.webp');
+console.log(charsetTexture)
 const webcamConstraints = {
     audio: false,
     video: {width : 1600, height: 900}
@@ -16,9 +20,9 @@ function gaussianKernelValues(x,y,sigma){
 }
 
 
-const SIGMA1 = 1.4;
-const SIGMA2 = 0.7;
-const kernelSize = 21;
+const SIGMA1 = 2.9;
+const SIGMA2 = 10.0;
+let kernelSize = 5;
 
 
 let gaussKernel1=[];
@@ -37,9 +41,11 @@ for(let i=0;i<kernelSize;i++){
 
 console.log(gaussKernel1)
 
+
 let gaussKernel2=[];
 let gaussKernel2Normalizer=0.0;
 count=0;
+kernelSize=21;
 for(let i=0;i<kernelSize;i++){
     for(let j=0;j<kernelSize;j++){
         let val =gaussianKernelValues(i,j,SIGMA2) ;
@@ -50,7 +56,7 @@ for(let i=0;i<kernelSize;i++){
     }
 }
 
-
+//
 navigator.mediaDevices
     .getUserMedia(webcamConstraints)
     .then((mediaStream)=>{
@@ -75,6 +81,8 @@ navigator.mediaDevices
     .catch((err)=>{
         console.error('${err.name}: ${err.message}');
     })
+//
+//main(circleImg);
 
 function main(texture) {
     // Initialize the GL context
@@ -96,6 +104,7 @@ function main(texture) {
     const gaussFragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, gaussFragmentShaderSource);
     const sobelFragmentShader = loadShader(gl,gl.FRAGMENT_SHADER, sobelFragmentShaderSource);
     const downscaleFragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, downscaleFragmentShaderSource);
+    const asciiFragmentShader = loadShader(gl,gl.FRAGMENT_SHADER, asciiFragmentShaderSource);
 
     const gaussShaderProgram = gl.createProgram();
     gl.attachShader(gaussShaderProgram, gaussVertexShader);
@@ -112,9 +121,14 @@ function main(texture) {
     gl.attachShader(downscaleShaderProgram, downscaleFragmentShader);
     gl.linkProgram(downscaleShaderProgram);
 
+    const asciiShaderProgram = gl.createProgram();
+    gl.attachShader(asciiShaderProgram, gaussVertexShader);
+    gl.attachShader(asciiShaderProgram, asciiFragmentShader);
+    gl.linkProgram(asciiShaderProgram);   
+
     // If creating the shader program failed, alert
 
-    if (!gl.getProgramParameter(gaussShaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(sobelShaderProgram, gl.LINK_STATUS) ||  !gl.getProgramParameter(downscaleShaderProgram, gl.LINK_STATUS)) {
+    if (!gl.getProgramParameter(gaussShaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(sobelShaderProgram, gl.LINK_STATUS) ||  !gl.getProgramParameter(downscaleShaderProgram, gl.LINK_STATUS) || !gl.getProgramParameter(asciiShaderProgram,gl.LINK_STATUS)) {
         alert(
             `Unable to initialize the shader program: ${gl.getProgramInfoLog(
                 gaussShaderProgram,
@@ -123,7 +137,6 @@ function main(texture) {
         return null;
     }
 
-    gl.useProgram(gaussShaderProgram);
     gl.viewport(0,0,gl.canvas.width,gl.canvas.height);
     gl.clearColor(0,0,0,0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -132,11 +145,10 @@ function main(texture) {
 
     const frameBuffer = gl.createFramebuffer()
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,intermediateTexture,0);
 
-    const inTexture =  loadTexture(gl,texture);
 
+    const inTexture =  loadTexture(gl,texture);
     // TEXTURE AND POSITION COORDS AND BUFFER
 
     const positionBuffer = gl.createBuffer();
@@ -144,8 +156,50 @@ function main(texture) {
     const positions = [1.0,1.0, 1.0,-1.0, -1.0,1.0, -1.0,-1.0];
     const textureCoords = [1.0,1.0, 1.0,0.0, 0.0,1.0, 0.0,0.0];
 
-    // G A U S S I A N   D I F F E R E N C E     S H A D E R
+    // A S C I I   S H A D E R
+ /*   
     {
+        gl.useProgram(asciiShaderProgram);
+
+        const vertexPositionAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_vertexPosition");
+        const textureCoordsAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_texcoord");
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions),gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(vertexPositionAttributeLocation);
+        gl.vertexAttribPointer(vertexPositionAttributeLocation,2,gl.FLOAT,false,0,0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords),gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(textureCoordsAttributeLocation);
+        gl.vertexAttribPointer(textureCoordsAttributeLocation,2,gl.FLOAT,false,0,0);
+        
+        const textureSizeUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_textureSize");
+        const inputUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_input");
+        const charsetUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_charset");
+
+        gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
+        gl.uniform1i(inputUniformLocation, 0);
+
+        const charsetTexture2D = loadTexture(gl, charsetTexture);
+        gl.uniform1i(charsetUniformLocation, 1);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, inTexture)
+        
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, charsetTexture2D)
+
+        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    }
+    */
+//
+
+    // G A U S S I A N   D I F F E R E N C E     S H A D E R
+    //
+    {
+        gl.useProgram(gaussShaderProgram);
+
         const vertexPositionAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_vertexPosition");
         const textureCoordsAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_texcoord");
 
@@ -177,8 +231,10 @@ function main(texture) {
         gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 
     }
+    //
     // S O B E L     S H A D E R
-    {
+//
+        {
         gl.useProgram(sobelShaderProgram);
 
         const vertexPositionAttributeLocation=gl.getAttribLocation(sobelShaderProgram, "a_vertexPosition");
@@ -205,9 +261,11 @@ function main(texture) {
         gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+        //gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0 ,4);
 
     }
+    //
     // D O W N S C A L E     S H A D E R
     {
         gl.useProgram(downscaleShaderProgram);
@@ -238,6 +296,7 @@ function main(texture) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0 ,4);
     }
+    //
 }
 
 

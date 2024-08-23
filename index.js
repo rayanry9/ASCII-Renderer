@@ -3,8 +3,6 @@ import { gaussFragmentShaderSource, sobelFragmentShaderSource, downscaleFragment
 import { blankTexture, loadImage, loadShader,loadTexture,} from "./lib/helper.js";
 
 const charsetTexture = await loadImage('charset.png')
-const circleImg = await loadImage('image.webp');
-console.log(charsetTexture)
 const webcamConstraints = {
     audio: false,
     video: {width : 1600, height: 900}

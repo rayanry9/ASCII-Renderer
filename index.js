@@ -2,7 +2,7 @@ import { gaussVertexShaderSource } from "./lib/vertexShader.js";
 import { gaussFragmentShaderSource, sobelFragmentShaderSource, downscaleFragmentShaderSource, asciiFragmentShaderSource } from "./lib/fragmentShader.js";
 import { blankTexture, loadImage, loadShader,loadTexture,} from "./lib/helper.js";
 
-const charsetTexture = await loadImage('charset.png')
+const charsetImg = await loadImage('charset.png')
 //const testImg = await loadImage('img1.png')
 const webcamConstraints = {
     audio: false,
@@ -150,7 +150,7 @@ function main(texture) {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,intermediateTexture,0);
 
 
-    const inTexture =  loadTexture(gl,texture);
+    let inTexture =  loadTexture(gl,texture);
     // TEXTURE AND POSITION COORDS AND BUFFER
 
     const positionBuffer = gl.createBuffer();
@@ -158,43 +158,7 @@ function main(texture) {
     const positions = [1.0,1.0, 1.0,-1.0, -1.0,1.0, -1.0,-1.0];
     const textureCoords = [1.0,1.0, 1.0,0.0, 0.0,1.0, 0.0,0.0];
 
-    // A S C I I   S H A D E R
- /*   
-    {
-        gl.useProgram(asciiShaderProgram);
 
-        const vertexPositionAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_vertexPosition");
-        const textureCoordsAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_texcoord");
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions),gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(vertexPositionAttributeLocation);
-        gl.vertexAttribPointer(vertexPositionAttributeLocation,2,gl.FLOAT,false,0,0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords),gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(textureCoordsAttributeLocation);
-        gl.vertexAttribPointer(textureCoordsAttributeLocation,2,gl.FLOAT,false,0,0);
-        
-        const textureSizeUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_textureSize");
-        const inputUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_input");
-        const charsetUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_charset");
-
-        gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
-        gl.uniform1i(inputUniformLocation, 0);
-
-        const charsetTexture2D = loadTexture(gl, charsetTexture);
-        gl.uniform1i(charsetUniformLocation, 1);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, inTexture)
-        
-        gl.activeTexture(gl.TEXTURE1)
-        gl.bindTexture(gl.TEXTURE_2D, charsetTexture2D)
-
-        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-    }
-    */
 //
 
     // G A U S S I A N   D I F F E R E N C E     S H A D E R
@@ -295,9 +259,56 @@ function main(texture) {
         gl.uniform1i(textureUniformLocation, 0);
         gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0 ,4);
     }
+
+       
+
+    // A S C I I   S H A D E R
+
+    {
+        inTexture= loadTexture(gl,texture);
+        gl.useProgram(asciiShaderProgram);
+
+        const vertexPositionAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_vertexPosition");
+        const textureCoordsAttributeLocation=gl.getAttribLocation(gaussShaderProgram, "a_texcoord");
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions),gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(vertexPositionAttributeLocation);
+        gl.vertexAttribPointer(vertexPositionAttributeLocation,2,gl.FLOAT,false,0,0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords),gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(textureCoordsAttributeLocation);
+        gl.vertexAttribPointer(textureCoordsAttributeLocation,2,gl.FLOAT,false,0,0);
+        
+        const textureSizeUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_textureSize");
+        const inputUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_input");
+        const edgeUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_edge");
+        const charsetUniformLocation = gl.getUniformLocation(asciiShaderProgram, "u_charset");
+
+        gl.uniform2f(textureSizeUniformLocation, texture.width, texture.height);
+        gl.uniform1i(inputUniformLocation, 0);
+        gl.uniform1i(edgeUniformLocation, 2);
+
+        const charsetTexture = loadTexture(gl, charsetImg);
+        gl.uniform1i(charsetUniformLocation, 1);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, inTexture)
+        
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, charsetTexture)
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, intermediateTexture);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    }
+
     //
 }
 

@@ -3,6 +3,7 @@ import { gaussFragmentShaderSource, sobelFragmentShaderSource, downscaleFragment
 import { blankTexture, loadImage, loadShader,loadTexture,} from "./lib/helper.js";
 
 const charsetTexture = await loadImage('charset.png')
+//const testImg = await loadImage('img1.png')
 const webcamConstraints = {
     audio: false,
     video: {width : 1600, height: 900}
@@ -18,9 +19,9 @@ function gaussianKernelValues(x,y,sigma){
 }
 
 
-const SIGMA1 = 2.9;
-const SIGMA2 = 10.0;
-let kernelSize = 5;
+const SIGMA1 = 0.9;
+const SIGMA2 = 1.0;
+let kernelSize = 3;
 
 
 let gaussKernel1=[];
@@ -37,13 +38,15 @@ for(let i=0;i<kernelSize;i++){
     }
 }
 
+gaussKernel1=gaussKernel1.map((val)=>val/gaussKernel1Normalizer);
+
 console.log(gaussKernel1)
 
 
 let gaussKernel2=[];
 let gaussKernel2Normalizer=0.0;
 count=0;
-kernelSize=21;
+kernelSize=5;
 for(let i=0;i<kernelSize;i++){
     for(let j=0;j<kernelSize;j++){
         let val =gaussianKernelValues(i,j,SIGMA2) ;
@@ -53,8 +56,9 @@ for(let i=0;i<kernelSize;i++){
         count++;
     }
 }
+gaussKernel2=gaussKernel2.map((val)=>val/gaussKernel2Normalizer);
 
-//
+
 navigator.mediaDevices
     .getUserMedia(webcamConstraints)
     .then((mediaStream)=>{
@@ -79,8 +83,8 @@ navigator.mediaDevices
     .catch((err)=>{
         console.error('${err.name}: ${err.message}');
     })
-//
-//main(circleImg);
+
+//main(testImg);
 
 function main(texture) {
     // Initialize the GL context

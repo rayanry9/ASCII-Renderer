@@ -88,7 +88,8 @@ const fragmentCode = `
 }`;
 
 const canvasOut = document.getElementById("sobelCanvas");
-const canvasIn = document.getElementById("vidCanvas");
+const canvasSrc = document.getElementById("gaussCanvas");
+const canvasIn = document.getElementById("intGauss");
 const ctx = canvasIn.getContext('2d');
 const {gl, program} = webGLInit(canvasOut, vertexCode, fragmentCode);
 
@@ -96,12 +97,19 @@ export async function init() {
 	const resolution = gl.getUniformLocation(program, "resolution");
 	gl.uniform2f(resolution, canvasOut.width, canvasOut.height);
 
+
+	ctx.clearRect(0, 0, canvasIn.width, canvasIn.height);
+	ctx.drawImage(canvasSrc, 0, 0);
+
 	gl.activeTexture(gl.TEXTURE0)
 	const inputImg = ctx.getImageData(0, 0, canvasIn.width, canvasIn.height);
 	loadTexture(gl, inputImg);
 }
 
 export function render() {
+	ctx.clearRect(0, 0, canvasIn.width, canvasIn.height);
+	ctx.drawImage(canvasSrc, 0, 0);
+
 	gl.activeTexture(gl.TEXTURE0)
 	const inputImg = ctx.getImageData(0, 0, canvasIn.width, canvasIn.height);
 	loadTexture(gl, inputImg);

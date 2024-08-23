@@ -25,7 +25,7 @@ const fragmentCode = `
 		vec2 coord = gl_FragCoord.xy - mod(gl_FragCoord.xy, 8.0);
 		vec4 rgba = texture2D(uInput, coord / resolution);
 		
-		float offset1 = 8.0*floor(luminance(rgba)*11.0);
+		float offset1 = 8.0*floor(luminance(rgba)*10.0);
 		vec2 uv1 = vec2(
 			(offset1 + mod(gl_FragCoord.x, 8.0)) / 88.0,
 			0.5 + mod(gl_FragCoord.y, 8.0) / 16.0

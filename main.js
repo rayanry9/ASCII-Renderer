@@ -1,4 +1,5 @@
 import * as ascii from "./ascii.js";
+import * as gauss from "./gauss.js";
 import * as sobel from "./sobel.js";
 import * as edge from "./edge.js";
 
@@ -25,15 +26,18 @@ await new Promise(resolve => {
     })
 });
 
+await gauss.init();
 await sobel.init();
 await edge.init();
 await ascii.init();
+
 
 const vidCanvas = document.getElementById("vidCanvas");
 const ctx = vidCanvas.getContext("2d");
 
 function render() {
 	ctx.drawImage(video, 0, 0, vidCanvas.width, vidCanvas.height);
+	gauss.render();
 	sobel.render();
 	edge.render();
 	ascii.render();
